@@ -1,0 +1,694 @@
+#### creation of envirem variables
+
+
+library(envirem)
+library(raster)
+library(terra)
+
+
+## loading Temperature and precipitation data into environment
+
+
+prec <- stack("prec08-18.tif")
+
+names(prec)
+
+num_years <- 11
+num_months <- 12
+start_year <- 2008
+
+# Generate new names
+new_names_prec <- c()
+for (year in start_year:(start_year + num_years - 1)) {
+  year_suffix <- substr(year, 3, 4)  # Extract the last two digits of the year
+  for (month in 1:num_months) {
+    new_name_prec <- paste("precip_", year_suffix, ".", month, sep="")
+    new_names_prec <- c(new_names_prec, new_name_prec)
+  }
+}
+
+# Rename the layers in the raster stack
+names(prec) <- new_names_prec
+
+
+### tmin
+
+
+tmin <- stack("tmin08-18.tif")
+
+names(tmin)
+
+new_names_tmin <- c()
+for (year in start_year:(start_year + num_years - 1)) {
+  year_suffix <- substr(year, 3, 4)  # Extract the last two digits of the year
+  for (month in 1:num_months) {
+    new_name_tmin <- paste("tmin_", year_suffix, ".", month, sep="")
+    new_names_tmin <- c(new_names_tmin, new_name_tmin)
+  }
+}
+
+# Rename the layers in the raster stack
+names(tmin) <- new_names_tmin
+
+
+
+### tmin
+
+
+tmax <- stack("tmax08-18.tif")
+
+names(tmax)
+
+new_names_tmax <- c()
+for (year in start_year:(start_year + num_years - 1)) {
+  year_suffix <- substr(year, 3, 4)  # Extract the last two digits of the year
+  for (month in 1:num_months) {
+    new_name_tmax <- paste("tmax_", year_suffix, ".", month, sep="")
+    new_names_tmax <- c(new_names_tmax, new_name_tmax)
+  }
+}
+
+# Rename the layers in the raster stack
+names(tmax) <- new_names_tmax
+
+
+
+### now it is needed to create rasterstacks for the individual years withi prec tmin and tmax
+
+yearly_precs <- list()
+
+for (year in 1:num_years) {
+  # Calculate the start and end index for each year
+  start_index <- ((year - 1) * num_months) + 1
+  end_index <- year * num_months
+  
+  # Subset the raster stack
+  yearly_prec <- subset(prec, start_index:end_index)
+  
+  # Store the yearly raster stack in the list
+  yearly_precs[[year]] <- yearly_prec
+}
+
+# Naming the list elements with years
+names(yearly_precs) <- paste("prec", sprintf("%02d", 8:18), sep="")
+
+
+
+
+### now the same for tmin
+
+
+
+yearly_tmins <- list()
+
+for (year in 1:num_years) {
+  # Calculate the start and end index for each year
+  start_index <- ((year - 1) * num_months) + 1
+  end_index <- year * num_months
+  
+  # Subset the raster stack
+  yearly_tmin <- subset(tmin, start_index:end_index)
+  
+  # Store the yearly raster stack in the list
+  yearly_tmins[[year]] <- yearly_tmin
+}
+
+# Naming the list elements with years
+names(yearly_tmins) <- paste("tmin", sprintf("%02d", 8:18), sep="")
+
+
+
+yearly_tmaxs <- list()
+
+for (year in 1:num_years) {
+  # Calculate the start and end index for each year
+  start_index <- ((year - 1) * num_months) + 1
+  end_index <- year * num_months
+  
+  # Subset the raster stack
+  yearly_tmax <- subset(tmax, start_index:end_index)
+  
+  # Store the yearly raster stack in the list
+  yearly_tmaxs[[year]] <- yearly_tmax
+}
+
+# Naming the list elements with years
+names(yearly_tmaxs) <- paste("tmax", sprintf("%02d", 8:18), sep="")
+
+
+
+
+
+
+
+#prec09 <- stack(yearly_precs$prec09)
+#tmin09 <- stack(yearly_tmins$tmin09)
+#tmax09 <- stack(yearly_tmaxs$tmax09)
+
+
+
+
+#### creation of envirems for the year 2009
+
+masterstack09 <- stack(yearly_precs[["prec09"]], yearly_tmins[["tmin09"]], yearly_tmaxs[["tmax09"]])
+
+
+names(masterstack09)
+
+namingScheme()
+
+verifyRasterNames(masterstack09)
+
+
+#### creating a universal naming to apply to the individual masterstacks
+
+masterstack_namings <- c("precip_01", "precip_02", "precip_03", "precip_04", "precip_05", "precip_06", "precip_07", "precip_08", "precip_09", "precip_10", "precip_11", "precip_12",
+"tmin_01", "tmin_02", "tmin_03", "tmin_04", "tmin_05", "tmin_06", "tmin_07", "tmin_08", "tmin_09", "tmin_10", "tmin_11", "tmin_12",
+"tmax_01", "tmax_02", "tmax_03", "tmax_04", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "tmax_09", "tmax_10", "tmax_11", "tmax_12")
+
+
+names(masterstack09) <- masterstack_namings
+
+
+
+
+rastmaster09 <- rast(masterstack09)
+
+
+
+## then a raster template for etsolrad 
+
+prec09.1_rast <- rast(yearly_precs[["prec09"]]$precip_09.1)
+
+
+solrad09 <- ETsolradRasters(prec09.1_rast , 59, outputDir = NULL)
+
+
+verifyRasterNames(masterstack= masterstack09, solradstack= solrad09)
+
+
+
+
+envirem09 <- generateEnvirem(rastmaster09, solradstack = solrad09, var = "all", tempScale = 10,
+                             precipScale = 10)
+
+
+
+
+#### creation of envirems for the year 2010
+
+masterstack10 <- stack(yearly_precs[["prec10"]], yearly_tmins[["tmin10"]], yearly_tmaxs[["tmax10"]])
+
+
+names(masterstack10)
+
+namingScheme()
+
+verifyRasterNames(masterstack10)
+
+
+#### creating a universal naming to apply to the individual masterstacks
+
+masterstack_namings <- c("precip_01", "precip_02", "precip_03", "precip_04", "precip_05", "precip_06", "precip_07", "precip_08", "precip_09", "precip_10", "precip_11", "precip_12",
+                         "tmin_01", "tmin_02", "tmin_03", "tmin_04", "tmin_05", "tmin_06", "tmin_07", "tmin_08", "tmin_09", "tmin_10", "tmin_11", "tmin_12",
+                         "tmax_01", "tmax_02", "tmax_03", "tmax_04", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "tmax_09", "tmax_10", "tmax_11", "tmax_12")
+
+
+names(masterstack10) <- masterstack_namings
+
+
+
+
+rastmaster10 <- rast(masterstack10)
+
+
+
+## then a raster template for etsolrad 
+
+prec10.1_rast <- rast(yearly_precs[["prec10"]]$precip_10.1)
+
+
+solrad10 <- ETsolradRasters(prec10.1_rast , 60, outputDir = NULL)
+
+
+verifyRasterNames(masterstack= masterstack10, solradstack= solrad10)
+
+
+
+
+envirem10 <- generateEnvirem(rastmaster10, solradstack = solrad10, var = "all", tempScale = 10,
+                             precipScale = 10)
+
+
+
+
+
+
+#### creation of envirems for the year 2011
+
+masterstack11 <- stack(yearly_precs[["prec11"]], yearly_tmins[["tmin11"]], yearly_tmaxs[["tmax11"]])
+
+
+names(masterstack11)
+
+namingScheme()
+
+verifyRasterNames(masterstack11)
+
+
+#### creating a universal naming to apply to the individual masterstacks
+
+masterstack_namings <- c("precip_01", "precip_02", "precip_03", "precip_04", "precip_05", "precip_06", "precip_07", "precip_08", "precip_09", "precip_10", "precip_11", "precip_12",
+                         "tmin_01", "tmin_02", "tmin_03", "tmin_04", "tmin_05", "tmin_06", "tmin_07", "tmin_08", "tmin_09", "tmin_10", "tmin_11", "tmin_12",
+                         "tmax_01", "tmax_02", "tmax_03", "tmax_04", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "tmax_09", "tmax_10", "tmax_11", "tmax_12")
+
+
+names(masterstack11) <- masterstack_namings
+
+
+
+
+rastmaster11 <- rast(masterstack11)
+
+
+
+## then a raster template for etsolrad 
+
+prec11.1_rast <- rast(yearly_precs[["prec11"]]$precip_11.1)
+
+
+solrad11 <- ETsolradRasters(prec11.1_rast , 61, outputDir = NULL)
+
+
+verifyRasterNames(masterstack= masterstack11, solradstack= solrad11)
+
+
+
+
+envirem11 <- generateEnvirem(rastmaster11, solradstack = solrad11, var = "all", tempScale = 10,
+                             precipScale = 10)
+
+
+
+
+
+
+
+
+
+
+#### creation of envirems for the year 2012
+
+masterstack12 <- stack(yearly_precs[["prec12"]], yearly_tmins[["tmin12"]], yearly_tmaxs[["tmax12"]])
+
+
+names(masterstack12)
+
+namingScheme()
+
+verifyRasterNames(masterstack12)
+
+
+#### creating a universal naming to apply to the individual masterstacks
+
+masterstack_namings <- c("precip_01", "precip_02", "precip_03", "precip_04", "precip_05", "precip_06", "precip_07", "precip_08", "precip_09", "precip_10", "precip_11", "precip_12",
+                         "tmin_01", "tmin_02", "tmin_03", "tmin_04", "tmin_05", "tmin_06", "tmin_07", "tmin_08", "tmin_09", "tmin_10", "tmin_11", "tmin_12",
+                         "tmax_01", "tmax_02", "tmax_03", "tmax_04", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "tmax_09", "tmax_10", "tmax_11", "tmax_12")
+
+
+names(masterstack12) <- masterstack_namings
+
+
+
+
+rastmaster12 <- rast(masterstack12)
+
+
+
+## then a raster template for etsolrad 
+
+prec12.1_rast <- rast(yearly_precs[["prec12"]]$precip_12.1)
+
+
+solrad12 <- ETsolradRasters(prec12.1_rast , 62, outputDir = NULL)
+
+
+verifyRasterNames(masterstack= masterstack12, solradstack= solrad12)
+
+
+
+
+envirem12 <- generateEnvirem(rastmaster12, solradstack = solrad12, var = "all", tempScale = 10,
+                             precipScale = 10)
+
+
+
+
+
+
+#### creation of envirems for the year 2013
+
+masterstack13 <- stack(yearly_precs[["prec13"]], yearly_tmins[["tmin13"]], yearly_tmaxs[["tmax13"]])
+
+
+names(masterstack13)
+
+namingScheme()
+
+verifyRasterNames(masterstack13)
+
+
+#### creating a universal naming to apply to the individual masterstacks
+
+masterstack_namings <- c("precip_01", "precip_02", "precip_03", "precip_04", "precip_05", "precip_06", "precip_07", "precip_08", "precip_09", "precip_10", "precip_11", "precip_12",
+                         "tmin_01", "tmin_02", "tmin_03", "tmin_04", "tmin_05", "tmin_06", "tmin_07", "tmin_08", "tmin_09", "tmin_10", "tmin_11", "tmin_12",
+                         "tmax_01", "tmax_02", "tmax_03", "tmax_04", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "tmax_09", "tmax_10", "tmax_11", "tmax_12")
+
+
+names(masterstack13) <- masterstack_namings
+
+
+
+
+rastmaster13 <- rast(masterstack13)
+
+
+
+## then a raster template for etsolrad 
+
+prec13.1_rast <- rast(yearly_precs[["prec13"]]$precip_13.1)
+
+
+solrad13 <- ETsolradRasters(prec13.1_rast , 63, outputDir = NULL)
+
+
+verifyRasterNames(masterstack= masterstack13, solradstack= solrad13)
+
+
+
+
+envirem13 <- generateEnvirem(rastmaster13, solradstack = solrad13, var = "all", tempScale = 10,
+                             precipScale = 10)
+
+
+
+
+
+
+#### creation of envirems for the year 2014
+
+masterstack14 <- stack(yearly_precs[["prec14"]], yearly_tmins[["tmin14"]], yearly_tmaxs[["tmax14"]])
+
+
+names(masterstack14)
+
+namingScheme()
+
+verifyRasterNames(masterstack14)
+
+
+#### creating a universal naming to apply to the individual masterstacks
+
+masterstack_namings <- c("precip_01", "precip_02", "precip_03", "precip_04", "precip_05", "precip_06", "precip_07", "precip_08", "precip_09", "precip_10", "precip_11", "precip_12",
+                         "tmin_01", "tmin_02", "tmin_03", "tmin_04", "tmin_05", "tmin_06", "tmin_07", "tmin_08", "tmin_09", "tmin_10", "tmin_11", "tmin_12",
+                         "tmax_01", "tmax_02", "tmax_03", "tmax_04", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "tmax_09", "tmax_10", "tmax_11", "tmax_12")
+
+
+names(masterstack14) <- masterstack_namings
+
+
+
+
+rastmaster14 <- rast(masterstack14)
+
+
+
+## then a raster template for etsolrad 
+
+prec14.1_rast <- rast(yearly_precs[["prec14"]]$precip_14.1)
+
+
+solrad14 <- ETsolradRasters(prec14.1_rast , 64, outputDir = NULL)
+
+
+verifyRasterNames(masterstack= masterstack14, solradstack= solrad14)
+
+
+
+
+envirem14 <- generateEnvirem(rastmaster14, solradstack = solrad14, var = "all", tempScale = 10,
+                             precipScale = 10)
+
+
+
+
+
+
+#### creation of envirems for the year 2015
+
+masterstack15 <- stack(yearly_precs[["prec15"]], yearly_tmins[["tmin15"]], yearly_tmaxs[["tmax15"]])
+
+
+names(masterstack15)
+
+namingScheme()
+
+verifyRasterNames(masterstack15)
+
+
+#### creating a universal naming to apply to the individual masterstacks
+
+masterstack_namings <- c("precip_01", "precip_02", "precip_03", "precip_04", "precip_05", "precip_06", "precip_07", "precip_08", "precip_09", "precip_10", "precip_11", "precip_12",
+                         "tmin_01", "tmin_02", "tmin_03", "tmin_04", "tmin_05", "tmin_06", "tmin_07", "tmin_08", "tmin_09", "tmin_10", "tmin_11", "tmin_12",
+                         "tmax_01", "tmax_02", "tmax_03", "tmax_04", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "tmax_09", "tmax_10", "tmax_11", "tmax_12")
+
+
+names(masterstack15) <- masterstack_namings
+
+
+
+
+rastmaster15 <- rast(masterstack15)
+
+
+
+## then a raster template for etsolrad 
+
+prec15.1_rast <- rast(yearly_precs[["prec15"]]$precip_15.1)
+
+
+solrad15 <- ETsolradRasters(prec15.1_rast , 65, outputDir = NULL)
+
+
+verifyRasterNames(masterstack= masterstack15, solradstack= solrad15)
+
+
+
+
+envirem15 <- generateEnvirem(rastmaster15, solradstack = solrad15, var = "all", tempScale = 10,
+                             precipScale = 10)
+
+
+
+
+
+
+
+#### creation of envirems for the year 2016
+
+masterstack16 <- stack(yearly_precs[["prec16"]], yearly_tmins[["tmin16"]], yearly_tmaxs[["tmax16"]])
+
+
+names(masterstack16)
+
+namingScheme()
+
+verifyRasterNames(masterstack16)
+
+
+#### creating a universal naming to apply to the individual masterstacks
+
+masterstack_namings <- c("precip_01", "precip_02", "precip_03", "precip_04", "precip_05", "precip_06", "precip_07", "precip_08", "precip_09", "precip_10", "precip_11", "precip_12",
+                         "tmin_01", "tmin_02", "tmin_03", "tmin_04", "tmin_05", "tmin_06", "tmin_07", "tmin_08", "tmin_09", "tmin_10", "tmin_11", "tmin_12",
+                         "tmax_01", "tmax_02", "tmax_03", "tmax_04", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "tmax_09", "tmax_10", "tmax_11", "tmax_12")
+
+
+names(masterstack16) <- masterstack_namings
+
+
+
+
+rastmaster16 <- rast(masterstack16)
+
+
+
+## then a raster template for etsolrad 
+
+prec16.1_rast <- rast(yearly_precs[["prec16"]]$precip_16.1)
+
+
+solrad16 <- ETsolradRasters(prec16.1_rast , 66, outputDir = NULL)
+
+
+verifyRasterNames(masterstack= masterstack16, solradstack= solrad16)
+
+
+
+
+envirem16 <- generateEnvirem(rastmaster16, solradstack = solrad16, var = "all", tempScale = 10,
+                             precipScale = 10)
+
+
+
+
+
+
+
+
+#### creation of envirems for the year 2017
+
+masterstack17 <- stack(yearly_precs[["prec17"]], yearly_tmins[["tmin17"]], yearly_tmaxs[["tmax17"]])
+
+
+names(masterstack17)
+
+namingScheme()
+
+verifyRasterNames(masterstack17)
+
+
+#### creating a universal naming to apply to the individual masterstacks
+
+masterstack_namings <- c("precip_01", "precip_02", "precip_03", "precip_04", "precip_05", "precip_06", "precip_07", "precip_08", "precip_09", "precip_10", "precip_11", "precip_12",
+                         "tmin_01", "tmin_02", "tmin_03", "tmin_04", "tmin_05", "tmin_06", "tmin_07", "tmin_08", "tmin_09", "tmin_10", "tmin_11", "tmin_12",
+                         "tmax_01", "tmax_02", "tmax_03", "tmax_04", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "tmax_09", "tmax_10", "tmax_11", "tmax_12")
+
+
+names(masterstack17) <- masterstack_namings
+
+
+
+
+rastmaster17 <- rast(masterstack17)
+
+
+
+## then a raster template for etsolrad 
+
+prec17.1_rast <- rast(yearly_precs[["prec17"]]$precip_17.1)
+
+
+solrad17 <- ETsolradRasters(prec17.1_rast , 67, outputDir = NULL)
+
+
+verifyRasterNames(masterstack= masterstack17, solradstack= solrad17)
+
+
+
+
+envirem17 <- generateEnvirem(rastmaster17, solradstack = solrad17, var = "all", tempScale = 10,
+                             precipScale = 10)
+
+
+
+
+
+
+#### creation of envirems for the year 2018
+
+masterstack18 <- stack(yearly_precs[["prec18"]], yearly_tmins[["tmin18"]], yearly_tmaxs[["tmax18"]])
+
+
+names(masterstack18)
+
+namingScheme()
+
+verifyRasterNames(masterstack18)
+
+
+#### creating a universal naming to apply to the individual masterstacks
+
+masterstack_namings <- c("precip_01", "precip_02", "precip_03", "precip_04", "precip_05", "precip_06", "precip_07", "precip_08", "precip_09", "precip_10", "precip_11", "precip_12",
+                         "tmin_01", "tmin_02", "tmin_03", "tmin_04", "tmin_05", "tmin_06", "tmin_07", "tmin_08", "tmin_09", "tmin_10", "tmin_11", "tmin_12",
+                         "tmax_01", "tmax_02", "tmax_03", "tmax_04", "tmax_05", "tmax_06", "tmax_07", "tmax_08", "tmax_09", "tmax_10", "tmax_11", "tmax_12")
+
+
+names(masterstack18) <- masterstack_namings
+
+
+
+
+rastmaster18 <- rast(masterstack18)
+
+
+
+## then a raster template for etsolrad 
+
+prec18.1_rast <- rast(yearly_precs[["prec18"]]$precip_18.1)
+
+
+solrad18 <- ETsolradRasters(prec18.1_rast , 68, outputDir = NULL)
+
+
+verifyRasterNames(masterstack= masterstack18, solradstack= solrad18)
+
+
+
+
+envirem18 <- generateEnvirem(rastmaster18, solradstack = solrad18, var = "all", tempScale = 10,
+                             precipScale = 10)
+
+
+
+
+### setting out to create the means
+
+
+annualPET_all <- c(envirem09$annualPET, envirem10$annualPET, envirem11$annualPET, envirem12$annualPET, envirem13$annualPET,
+                        envirem14$annualPET, envirem15$annualPET, envirem16$annualPET, envirem17$annualPET, envirem18$annualPET)
+
+annualPET_all <- brick(annualPET_all)
+
+mean_annaulPET <- calc(annualPET_all, fun = mean)
+
+
+
+
+
+#### trying to do it all at once
+
+
+
+layer_names <- c("annualPET", "aridityIndexThornthwaite", "climaticMoistureIndex", "continentality",
+                 "embergerQ", "growingDegDays0", "growingDegDays5", "maxTempColdest", "minTempWarmest",
+                 "meanTempColdest", "meanTempWarmest", "monthCountByTemp10", "PETColdestQuarter", 
+                 "PETDriestQuarter", "PETseasonality", "PETWarmestQuarter", "PETWettestQuarter", 
+                 "thermicityIndex")
+
+envirem_list <- list(envirem09, envirem10, envirem11, envirem12, envirem13, 
+                     envirem14, envirem15, envirem16, envirem17, envirem18)
+
+mean_layers <- list()
+
+for (layer in layer_names) {
+  layer_stack <- rast(lapply(envirem_list, function(x) x[[layer]]))
+  mean_layers[[layer]] <- app(layer_stack, mean, na.rm = TRUE)
+}
+
+
+
+# Combine all the layers into a single SpatRaster
+combined_envirem_mean <- rast(mean_layers[[1]])
+for (i in 1:length(mean_layers)) {
+  combined_envirem_mean <- c(combined_envirem_mean, mean_layers[[i]])
+}
+
+# Name the layers in the combined raster
+names(combined_envirem_mean) <- layer_names
+
+
+combined_envirem_mean <- brick(combined_envirem_mean)
+
+
+# Save the combined raster as a GeoTIFF
+writeRaster(combined_envirem_mean, filename = "mean_envirem0918.tif", format = "GTiff", overwrite = TRUE)
