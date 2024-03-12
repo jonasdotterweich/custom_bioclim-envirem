@@ -1,0 +1,540 @@
+### trying to create Bioclimatic varaibles for custom timeframe
+
+# plan is to take the chelsa monthly data and create the bioclimatic variables from that
+
+## what is needed? Data.frame with 4 mandatory columns (year, ppt, tmin, and tmax), and 12 rows (months) for each year sorted from Jan to Dec.
+
+
+
+library(dplyr)
+library(raster)
+library(terra)
+
+
+setwd("~/envicloud/chelsa/chelsa_V2/GLOBAL/monthly/pr")
+
+
+tif_files <- list.files(pattern = "\\.tif$")
+
+dir_path <- "~/envicloud/chelsa/chelsa_V2/GLOBAL/monthly/pr"
+
+years <- c(2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
+
+
+## file list for the individual years
+for (year in years) {
+  pattern <- paste0("CHELSA_pr_[0-1][0-9]_", year, "_V.2.1.tif")
+  file_list <- list.files(path = dir_path, pattern = pattern, full.names = TRUE)
+  
+  # Store the file list in the file_lists list, using the year as the name
+  file_lists[[as.character(year)]] <- file_list
+}
+
+
+### here I tried to make and individual file ist for the year
+
+tif_files
+
+files08 <- list.files(pattern="CHELSA_pr_(0[1-9]|1[0-2])_2008_V.2.1.tif")
+
+##nnow I am trying to create file lists in a loop for all years
+
+
+# Define the range of years
+start_year <- 2008
+end_year <- 2018
+
+# Initialize an empty list to store the file lists for each year
+file_lists <- list()
+
+# Loop through each year and generate a list of files
+for (year in start_year:end_year) {
+  # Create the pattern for the current year
+  pattern <- paste0("CHELSA_pr_(0[1-9]|1[0-2])_", year, "_V.2.1.tif")
+  
+  # List the files and store them in the file_lists list
+  file_lists[[as.character(year)]] <- list.files(pattern = pattern)
+}
+
+
+
+## this outcome is similar to the file list used before, yet maybe more usable
+# has to be use to select individual years as seen below
+
+
+#files08 <- stack(lapply(file_lists[["2008"]], raster))
+
+for (year in 2008:2018) {
+  year_key <- as.character(year)
+  if (length(file_lists[[year_key]]) > 0) {
+    # Create a raster stack for the year
+    assign(paste0("files", substr(year_key, 3, 4)), stack(lapply(file_lists[[year_key]], raster)))
+    print(paste0("Raster stack created for the year ", year_key))
+  } else {
+    print(paste0("No files found for the year ", year_key))
+  }
+}
+
+
+### now to make the files smaller and more usable I am cropping them to my individual europe extent
+
+eu_ext <- extent(-10, 30, 35, 60)
+
+
+for (year in 2008:2018) {
+  # Construct the variable names for input and output
+  input_var_name <- paste0("files", substr(as.character(year), 3, 4))
+  output_var_name <- paste0("eu_", input_var_name)
+  
+  # Check if the input raster stack exists in the global environment
+  if (exists(input_var_name, where = .GlobalEnv)) {
+    # Get the raster stack
+    raster_stack <- get(input_var_name)
+    
+    # Crop the raster stack
+    cropped_stack <- crop(raster_stack, eu_ext)
+    
+    # Assign the cropped stack to a new variable
+    assign(output_var_name, cropped_stack)
+    
+    print(paste0("Cropped raster stack created for the year ", year, " as ", output_var_name))
+  } else {
+    print(paste0("Raster stack for the year ", year, " not found."))
+  }
+}
+
+
+### trying to create the biovariabes with the dismo package from the stacks themselves
+
+## however, first a stack is needed for the 11 years. 
+
+prec0818 <- stack(eu_files08, eu_files09, eu_files10, eu_files11, eu_files12, eu_files13, eu_files14, eu_files15, eu_files16,
+                  eu_files17, eu_files18)
+
+
+setwd("~/Documents/Climatologies")
+
+writeRaster(prec0818, "prec08-10.tif")
+
+
+
+
+### ####### ------ ####### ### 
+
+
+
+## so now that precipitation is covered lets see that the same is done for the temperature maximums
+
+
+setwd("~/envicloud/chelsa/chelsa_V2/GLOBAL/monthly/tasmax")
+
+dir_path <- "~/envicloud/chelsa/chelsa_V2/GLOBAL/monthly/tasmax"
+
+years <- c(2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
+
+
+# Define the range of years
+start_year <- 2008
+end_year <- 2018
+
+# Initialize an empty list to store the file lists for each year
+file_lists <- list()
+
+# Loop through each year and generate a list of files
+for (year in start_year:end_year) {
+  # Create the pattern for the current year
+  pattern <- paste0("CHELSA_tasmax_(0[1-9]|1[0-2])_", year, "_V.2.1.tif")
+  
+  # List the files and store them in the file_lists list
+  file_lists[[as.character(year)]] <- list.files(pattern = pattern)
+}
+
+
+file_lists
+
+
+
+for (year in 2008:2018) {
+  year_key <- as.character(year)
+  if (length(file_lists[[year_key]]) > 0) {
+    # Create a raster stack for the year
+    assign(paste0("files_tmax", substr(year_key, 3, 4)), stack(lapply(file_lists[[year_key]], raster)))
+    print(paste0("Raster stack created for the year ", year_key))
+  } else {
+    print(paste0("No files found for the year ", year_key))
+  }
+}
+
+
+### now to make the files smaller and more usable I am cropping them to my individual europe extent
+
+eu_ext <- extent(-10, 30, 35, 60)
+
+
+for (year in 2008:2018) {
+  # Construct the variable names for input and output
+  input_var_name <- paste0("files_tmax", substr(as.character(year), 3, 4))
+  output_var_name <- paste0("eu_", input_var_name)
+  
+  # Check if the input raster stack exists in the global environment
+  if (exists(input_var_name, where = .GlobalEnv)) {
+    # Get the raster stack
+    raster_stack <- get(input_var_name)
+    
+    # Crop the raster stack
+    cropped_stack <- crop(raster_stack, eu_ext)
+    
+    # Assign the cropped stack to a new variable
+    assign(output_var_name, cropped_stack)
+    
+    print(paste0("Cropped raster stack created for the year ", year, " as ", output_var_name))
+  } else {
+    print(paste0("Raster stack for the year ", year, " not found."))
+  }
+}
+
+
+
+
+tmax0818 <- stack(eu_files_tmax08, eu_files_tmax09, eu_files_tmax10, eu_files_tmax11, eu_files_tmax12, eu_files_tmax13,
+                  eu_files_tmax14, eu_files_tmax15, eu_files_tmax16, eu_files_tmax17, eu_files_tmax18)
+
+
+setwd("~/Documents/Climatologies")
+
+writeRaster(tmax0818, "tmax08-10.tif")
+
+
+
+
+
+### ###### --- ##### ###
+
+## doing the same for tmin
+
+setwd("~/envicloud/chelsa/chelsa_V2/GLOBAL/monthly/tasmin")
+
+dir_path <- "~/envicloud/chelsa/chelsa_V2/GLOBAL/monthly/tasmin"
+
+years <- c(2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018)
+
+
+# Define the range of years
+start_year <- 2008
+end_year <- 2018
+
+# Initialize an empty list to store the file lists for each year
+file_lists <- list()
+
+# Loop through each year and generate a list of files
+for (year in start_year:end_year) {
+  # Create the pattern for the current year
+  pattern <- paste0("CHELSA_tasmin_(0[1-9]|1[0-2])_", year, "_V.2.1.tif")
+  
+  # List the files and store them in the file_lists list
+  file_lists[[as.character(year)]] <- list.files(pattern = pattern)
+}
+
+
+file_lists
+
+
+
+for (year in 2008:2018) {
+  year_key <- as.character(year)
+  if (length(file_lists[[year_key]]) > 0) {
+    # Create a raster stack for the year
+    assign(paste0("files_tmin", substr(year_key, 3, 4)), stack(lapply(file_lists[[year_key]], raster)))
+    print(paste0("Raster stack created for the year ", year_key))
+  } else {
+    print(paste0("No files found for the year ", year_key))
+  }
+}
+
+
+### now to make the files smaller and more usable I am cropping them to my individual europe extent
+
+eu_ext <- extent(-10, 30, 35, 60)
+
+
+for (year in 2008:2018) {
+  # Construct the variable names for input and output
+  input_var_name <- paste0("files_tmin", substr(as.character(year), 3, 4))
+  output_var_name <- paste0("eu_", input_var_name)
+  
+  # Check if the input raster stack exists in the global environment
+  if (exists(input_var_name, where = .GlobalEnv)) {
+    # Get the raster stack
+    raster_stack <- get(input_var_name)
+    
+    # Crop the raster stack
+    cropped_stack <- crop(raster_stack, eu_ext)
+    
+    # Assign the cropped stack to a new variable
+    assign(output_var_name, cropped_stack)
+    
+    print(paste0("Cropped raster stack created for the year ", year, " as ", output_var_name))
+  } else {
+    print(paste0("Raster stack for the year ", year, " not found."))
+  }
+}
+
+
+
+
+tmin0818 <- stack(eu_files_tmin08, eu_files_tmin09, eu_files_tmin10, eu_files_tmin11, eu_files_tmin12, eu_files_tmin13,
+                  eu_files_tmin14, eu_files_tmin15, eu_files_tmin16, eu_files_tmin17, eu_files_tmin18)
+
+
+setwd("~/Documents/Climatologies")
+
+writeRaster(tmin0818, "tmin08-10.tif")
+
+
+
+
+### ##### --- ##### ### 
+
+
+#now that this is done, I want to try to create the bioclim variables
+
+
+library(dismo)
+
+#appears so that the biovars can only be created yearly
+# as I dont hve prec in the environment anymore the creation is needed
+
+#below is how I did it
+
+#prec08 <- c(prec0818$CHELSA_pr_01_2008_V.2.1, prec0818$CHELSA_pr_02_2008_V.2.1, prec0818$CHELSA_pr_03_2008_V.2.1,
+#                   prec0818$CHELSA_pr_04_2008_V.2.1, prec0818$CHELSA_pr_05_2008_V.2.1, prec0818$CHELSA_pr_05_2008_V.2.1, 
+ #                  prec0818$CHELSA_pr_07_2008_V.2.1, prec0818$CHELSA_pr_08_2008_V.2.1, prec0818$CHELSA_pr_09_2008_V.2.1,
+  #                 prec0818$CHELSA_pr_10_2008_V.2.1, prec0818$CHELSA_pr_11_2008_V.2.1, prec0818$CHELSA_pr_12_2008_V.2.1)
+
+#prec08 <- stack(prec08)
+
+
+# this is how it should be done
+
+for (year in 2008:2018) {
+  # Initialize an empty list to store the layers for the current year
+  layers = list()
+  
+  # Loop through each month
+  for (month in 1:12) {
+    # Construct the layer name
+    layer_name = sprintf("CHELSA_pr_%02d_%d_V.2.1", month, year)
+    
+    # Check if the layer exists in the prec0818 stack
+    if (layer_name %in% names(prec0818)) {
+      # Add the layer to the list
+      layers[[length(layers) + 1]] = prec0818[[layer_name]]
+    }
+  }
+  
+  # Stack the layers for the current year
+  yearly_stack = stack(layers)
+  
+  # Assign the yearly stack to a new variable
+  assign(paste0("prec", substr(year, 3, 4)), yearly_stack)
+  
+  print(paste0("Raster stack created for the year ", year))
+}
+
+### after doing this I noticed, that I still do have it in my environment, however this is a good loop to extract a raster stack from a bigger raster stack
+
+# wrote the following demands individually as they have a long run time
+
+bivars08 <- biovars(prec08, eu_files_tmin08, eu_files_tmax08)
+
+bivars09 <- biovars(prec09, eu_files_tmin09, eu_files_tmax09)
+
+bivars10 <- biovars(prec10, eu_files_tmin10, eu_files_tmax10)
+
+bivars11 <- biovars(prec11, eu_files_tmin11, eu_files_tmax11)
+
+bivars12 <- biovars(prec12, eu_files_tmin12, eu_files_tmax12)
+
+bivars13 <- biovars(prec13, eu_files_tmin13, eu_files_tmax13) 
+
+bivars14 <- biovars(prec14, eu_files_tmin14, eu_files_tmax14)
+
+bivars15 <- biovars(prec15, eu_files_tmin15, eu_files_tmax15)
+
+bivars16 <- biovars(prec16, eu_files_tmin16, eu_files_tmax16)
+
+bivars17 <- biovars(prec17, eu_files_tmin17, eu_files_tmax17)
+
+bivars18 <- biovars(prec18, eu_files_tmin18, eu_files_tmax18)
+
+
+
+
+## with that the single yearly bioclimatic variables are created, to have a e.g. ten year time frame mean values need to be created
+
+
+all_bioclims <- stack(bivars09, bivars10, bivars11, bivars12, bivars13, bivars14, bivars15, bivars16, bivars17, bivars18)
+
+# Calculate the mean for each cell across all years
+
+mean_bioclims0918 <- calc(all_bioclims, fun=mean)
+
+### think about how to create the mean for all of the 10 years
+
+
+writeRaster(all_bioclims, "single_bioclims09-18.tif")
+
+
+## maybe the mena should be created inbetween the single bivars and not in the stack of them
+
+## the thing with the calc function is that It takes all together into one layer. we need 19 of them i the end accointing for all the 19 bioclimatic variables
+# but the mean has to be created inbetween bio1.1 to bio1.10 as well as for the other 19
+
+
+names(all_bioclims)
+
+
+
+
+### firts try fail ### 
+
+mean_bioclims_list <- list()
+
+# Loop over each bioclimatic variable
+for (i in 1:19) {
+  # Extract layers corresponding to the current bioclimatic variable over the years
+  bio_layers <- subset(all_bioclims, grep(paste0('^bio', i, '\\.'), names(all_bioclims)))
+  
+  # Calculate the mean of these layers
+  mean_layer <- calc(bio_layers, mean)
+  
+  # Add the mean layer to the list
+  mean_bioclims_list[[i]] <- mean_layer
+}
+
+# Combine the mean layers into a new RasterStack
+mean_bioclims_stack <- stack(mean_bioclims_list)
+names(mean_bioclims_stack) <- paste0('bio', 1:19)  # Renaming layers
+
+names(bio_layers)
+names(mean_bioclims_stack)
+
+
+#### second try ####
+
+mean_bioclims_list <- list()
+
+# Loop over each bioclimatic variable
+for (i in 1:19) {
+  # Extract layers corresponding to the current bioclimatic variable over the years
+  pattern <- paste0('^bio', i, '\\.')
+  bio_layers_indices <- grep(pattern, names(all_bioclims))
+  bio_layers <- all_bioclims[[bio_layers_indices]]
+  
+  # Calculate the mean of these layers
+  mean_layer <- calc(bio_layers, fun=mean)
+  
+  # Add the mean layer to the list
+  mean_bioclims_list[[i]] <- mean_layer
+}
+
+
+
+mean_bioclims_stack <- stack(mean_bioclims_list)
+names(mean_bioclims_stack) <- paste0('bio', 1:19)  # Renaming layers
+
+
+### I want to check if this is correct and therefore taking the time to calculate so waht manaully
+
+
+BIO1 <- stack(bivars09$bio1, bivars10$bio1, bivars11$bio1, bivars12$bio1, bivars13$bio1, bivars14$bio1, bivars15$bio1,
+              bivars16$bio1, bivars17$bio1, bivars18$bio1)
+
+BIO2 <- stack(bivars09$bio2, bivars10$bio2, bivars11$bio2, bivars12$bio2, bivars13$bio2, bivars14$bio2, bivars15$bio2,
+              bivars16$bio2, bivars17$bio2, bivars18$bio2)
+
+BIO3 <- stack(bivars09$bio3, bivars10$bio3, bivars11$bio3, bivars12$bio3, bivars13$bio3, bivars14$bio3, bivars15$bio3,
+              bivars16$bio3, bivars17$bio3, bivars18$bio3)
+
+BIO4 <- stack(bivars09$bio4, bivars10$bio4, bivars11$bio4, bivars12$bio4, bivars13$bio4, bivars14$bio4, bivars15$bio4,
+              bivars16$bio4, bivars17$bio4, bivars18$bio4)
+
+BIO5 <- stack(bivars09$bio5, bivars10$bio5, bivars11$bio5, bivars12$bio5, bivars13$bio5, bivars14$bio5, bivars15$bio5,
+              bivars16$bio5, bivars17$bio5, bivars18$bio5)
+
+BIO6 <- stack(bivars09$bio6, bivars10$bio6, bivars11$bio6, bivars12$bio6, bivars13$bio6, bivars14$bio6, bivars15$bio6,
+              bivars16$bio6, bivars17$bio6, bivars18$bio6)
+
+BIO7 <- stack(bivars09$bio7, bivars10$bio7, bivars11$bio7, bivars12$bio7, bivars13$bio7, bivars14$bio7, bivars15$bio7,
+              bivars16$bio7, bivars17$bio7, bivars18$bio7)
+
+BIO8 <- stack(bivars09$bio8, bivars10$bio8, bivars11$bio8, bivars12$bio8, bivars13$bio8, bivars14$bio8, bivars15$bio8,
+              bivars16$bio8, bivars17$bio8, bivars18$bio8)
+
+BIO9 <- stack(bivars09$bio9, bivars10$bio9, bivars11$bio9, bivars12$bio9, bivars13$bio9, bivars14$bio9, bivars15$bio9,
+              bivars16$bio9, bivars17$bio9, bivars18$bio9)
+
+BIO10 <- stack(bivars09$bio10, bivars10$bio10, bivars11$bio10, bivars12$bio10, bivars13$bio10, bivars14$bio10, bivars15$bio10,
+               bivars16$bio10, bivars17$bio10, bivars18$bio10)
+
+BIO11 <- stack(bivars09$bio11, bivars10$bio11, bivars11$bio11, bivars12$bio11, bivars13$bio11, bivars14$bio11, bivars15$bio11,
+               bivars16$bio11, bivars17$bio11, bivars18$bio11)
+
+BIO12 <- stack(bivars09$bio12, bivars10$bio12, bivars11$bio12, bivars12$bio12, bivars13$bio12, bivars14$bio12, bivars15$bio12,
+               bivars16$bio12, bivars17$bio12, bivars18$bio12)
+
+BIO13 <- stack(bivars09$bio13, bivars10$bio13, bivars11$bio13, bivars12$bio13, bivars13$bio13, bivars14$bio13, bivars15$bio13,
+               bivars16$bio13, bivars17$bio13, bivars18$bio13)
+
+BIO14 <- stack(bivars09$bio14, bivars10$bio14, bivars11$bio14, bivars12$bio14, bivars13$bio14, bivars14$bio14, bivars15$bio14,
+               bivars16$bio14, bivars17$bio14, bivars18$bio14)
+
+BIO15 <- stack(bivars09$bio15, bivars10$bio15, bivars11$bio15, bivars12$bio15, bivars13$bio15, bivars14$bio15, bivars15$bio15,
+               bivars16$bio15, bivars17$bio15, bivars18$bio15)
+
+BIO16 <- stack(bivars09$bio16, bivars10$bio16, bivars11$bio16, bivars12$bio16, bivars13$bio16, bivars14$bio16, bivars15$bio16,
+               bivars16$bio16, bivars17$bio16, bivars18$bio16)
+
+BIO17 <- stack(bivars09$bio17, bivars10$bio17, bivars11$bio17, bivars12$bio17, bivars13$bio17, bivars14$bio17, bivars15$bio17,
+               bivars16$bio17, bivars17$bio17, bivars18$bio17)
+
+BIO18 <- stack(bivars09$bio18, bivars10$bio18, bivars11$bio18, bivars12$bio18, bivars13$bio18, bivars14$bio18, bivars15$bio18,
+               bivars16$bio18, bivars17$bio18, bivars18$bio18)
+
+BIO19 <- stack(bivars09$bio19, bivars10$bio19, bivars11$bio19, bivars12$bio19, bivars13$bio19, bivars14$bio19,bivars15$bio19,
+               bivars16$bio19, bivars17$bio19, bivars18$bio19)
+
+
+
+mean_BIO1 <- calc(BIO1, fun=mean)
+mean_BIO2 <- calc(BIO2, fun=mean)
+mean_BIO3 <- calc(BIO3, fun=mean)
+mean_BIO4 <- calc(BIO4, fun=mean)
+mean_BIO5 <- calc(BIO5, fun=mean)
+mean_BIO6 <- calc(BIO6, fun=mean)
+mean_BIO7 <- calc(BIO7, fun=mean)
+mean_BIO8 <- calc(BIO8, fun=mean)
+mean_BIO9 <- calc(BIO9, fun=mean)
+mean_BIO10 <- calc(BIO10, fun=mean)
+mean_BIO11 <- calc(BIO11, fun=mean)
+mean_BIO12 <- calc(BIO12, fun=mean)
+mean_BIO13 <- calc(BIO13, fun=mean)
+mean_BIO14 <- calc(BIO14, fun=mean)
+mean_BIO15 <- calc(BIO15, fun=mean)
+mean_BIO16 <- calc(BIO16, fun=mean)
+mean_BIO17 <- calc(BIO17, fun=mean)
+mean_BIO18 <- calc(BIO18, fun=mean)
+mean_BIO19 <- calc(BIO19, fun=mean)
+
+
+
+#### I can see now that indeed the mean_bioclimstack is correct
+
+
+writeRaster(mean_bioclims_stack, "mean_bioclim9818.tif")
+
+
+
+
+#### now that the tif for the 10 years between 2009 and 2018 is created for the bioclimatic variables, we proceed into the creation of envurem variables
+
